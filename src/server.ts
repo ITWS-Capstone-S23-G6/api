@@ -1,55 +1,53 @@
+//TODO
 import { ApolloServer } from "@apollo/server";
-import { startStandaloneServer } from "@apollo/server/standalone";
-import { Neo4jGraphQL } from "@neo4j/graphql";
-import neo4j from "neo4j-driver";
+import { expressMiddleware } from '@apollo/server/express4';
+import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
+import cors from 'cors';
+import bodyParser from 'body-parser';
+// need to import .js file after compilation
+import { typeDefs, resolvers, mocks } from "./schema.js";
+import { addMocksToSchema } from '@graphql-tools/mock';
+import { makeExecutableSchema } from '@graphql-tools/schema';
+import express from 'express';
+import http from "http";
 
-// const neo4jDriver = neo4j.driver(
-//     'neo4j://localhost',
-//     neo4j.auth.basic('neo4j', 'password')
-// )
+// Required logic for integrating with Express
+const app = express();
+// Our httpServer handles incoming requests to our Express app.
+// Below, we tell Apollo Server to "drain" this httpServer,
+// enabling our servers to shut down gracefully.
+const httpServer = http.createServer(app);
 
-const typeDefs = `#graphql
-    type Book {
-        title: String
-        author: String
-    }
-
-    type Query {
-        books: [Book]
-    }
-`;
-
-const books = [
-    {
-        title: "Harry Potter",
-        author: "J.K. Rowling"
-    },
-    {
-        title: "The Lord of the Rings",
-        author: "J.R.R. Tolkien"
-    }
-];
-
-const resolvers = {
-    Query: {
-        books: () => books
-    }
+interface MyContext {
+  token?: string;
 };
 
-// new ApolloServer constructor takes two arguments: your schema
-// definition and your set of resolvers.
-const server = new ApolloServer({
-    typeDefs,
-    resolvers
+// Same ApolloServer initialization as before, plus the drain plugin
+// for our httpServer.
+const server = new ApolloServer<MyContext>({
+  schema: addMocksToSchema({
+    schema: makeExecutableSchema({typeDefs, resolvers}), mocks
+  }),
+  plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
 });
 
-// Passing an apollo server instance to the startStandaloneServer function
-// 1. creates an express app
-// 2. installs apollo server as middleware
-// 3. prepares app to handle requests
+// Ensure we wait for our server to start
+await server.start();
 
-const { url } = await startStandaloneServer(server, {
-    listen: { port: 4000 },
-});
+// Set up our Express middleware to handle CORS, body parsing,
+// and our expressMiddleware function.
+app.use(
+  '/',
+  cors<cors.CorsRequest>(),
+  bodyParser.json(),
+  // expressMiddleware accepts the same arguments:
+  // an Apollo Server instance and optional configuration options
+  expressMiddleware(server, {
+    context: async ({ req }) => ({ token: req.headers.token }),
+  }),
+);
 
-console.log(`Apollo Server ready at ${url}`);
+// Modified server startup
+await new Promise<void>((resolve) => httpServer.listen({ port: 4000 }, resolve));
+console.log(`🚀 Server ready at http://localhost:4000/`);
+
