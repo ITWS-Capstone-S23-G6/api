@@ -3,19 +3,21 @@ FROM node:18.14.0 as base
 
 WORKDIR /usr/src/app
 
-COPY package*.json ./
+COPY package*.json pnpm-lock.yaml ./
 
-RUN npm install
+RUN npm install -g pnpm
 
+RUN pnpm install
+
+# Copies server.
 COPY . .
-
-EXPOSE 4000
-
-RUN npm run compile
-
-CMD ["node", "dist/server.js"]
 
 # informs Docker that the container listens on the
 # specified ports at runtime
+EXPOSE 4000
 
-# Copies server.
+RUN pnpm run build
+
+CMD ["node", "dist/server.js"]
+
+
