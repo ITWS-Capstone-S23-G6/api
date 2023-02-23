@@ -5,11 +5,12 @@ import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHt
 import cors from 'cors';
 import bodyParser from 'body-parser';
 // need to import .js file after compilation
-import { typeDefs, resolvers, mocks } from "./schema.js";
+import { typeDefs, resolvers, /*mocks*/} from "./schema.js";
 import { addMocksToSchema } from '@graphql-tools/mock';
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import express from 'express';
 import http from "http";
+import morgan from "morgan";
 
 // Required logic for integrating with Express
 const app = express();
@@ -25,9 +26,10 @@ interface MyContext {
 // Same ApolloServer initialization as before, plus the drain plugin
 // for our httpServer.
 const server = new ApolloServer<MyContext>({
-  schema: addMocksToSchema({
-    schema: makeExecutableSchema({typeDefs, resolvers}), mocks
-  }),
+  // schema: addMocksToSchema({
+  //   schema: makeExecutableSchema({typeDefs, resolvers}), mocks
+  // }),
+  typeDefs, resolvers,
   plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
 });
 
@@ -36,6 +38,7 @@ await server.start();
 
 // Set up our Express middleware to handle CORS, body parsing,
 // and our expressMiddleware function.
+app.use(morgan('dev'));
 app.use(
   '/',
   cors<cors.CorsRequest>(),

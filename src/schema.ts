@@ -5,7 +5,7 @@ export const typeDefs = gql`
 
   "A track is a group of Modules that teaches about a specific topic"
   type Query {
-    spaceCats: [SpaceCat]
+    spaceCats: [SpaceCat!]!
     tracksForHome: [Track!]!
   }
 
@@ -14,6 +14,7 @@ export const typeDefs = gql`
     name: String!
     age: Int
     missions: [Mission]
+    title: String
   }
 
   type Mission {
@@ -47,33 +48,64 @@ export const typeDefs = gql`
   }
 `;
 
-export const mocks = {
-  // define your mock properties here
-  SpaceCat: () => ({
-    id: () => "spacecat_01",
-    title: () => "spacecat pioneer"
-  }),
-  Track: () => ({
-    id: () => "track_01",
-    title: () => "Astro Kitty, Space Explorer",
-    author: () => {
-      return {
-        name: "Grumpy Cat",
-        photo:
-          "https://res.cloudinary.com/dety84pbu/image/upload/v1606816219/kitty-veyron-sm_mctf3c.jpg",
-      };
-    },
-    thumbnail: () =>
-      "https://res.cloudinary.com/dety84pbu/image/upload/v1598465568/nebula_cat_djkt9r.jpg",
-    length: () => 1210,
-    modulesCount: () => 1,
-  }),
-}
-
 export const resolvers = {
   Query: {
-    spaceCats: () => mocks.SpaceCat(),
-    tracksForHome: () => mocks.Track(),
+    spaceCats: () => ([
+      {
+        id: () => "spacecat_01",
+        title: () => "Lieutenant",
+        name: () => "UMO",
+        age: () => "2",
+        missions: () => {
+          return [
+            {
+              id: () => "01",
+              name: () => "clean the bathroom",
+              description: () => "scrub the bowl and the tub"
+            },
+            {
+              id: () => "02",
+              name: () => "clean the kitchen",
+              description: () => "dishes and other"
+            }
+          ]
+        }
+      },
+      {
+        id: () => "spacecat_00",
+        title: () => "Captain",
+        name: () => "AMO",
+        age: () => "4",
+        missions: () => {
+          return [
+            {
+              id: () => "01",
+              name: () => "Manage the ship",
+              description: () => "tell UMO what to do"
+            }
+          ]
+        }
+      }
+    ]),
+    tracksForHome: () => (
+      [
+        {
+          id: () => "track_01",
+          title: () => "Astro Kitty, Space Explorer",
+          author: () => {
+            return {
+              id: () => "762319",
+              name: () => "Grumpy Cat",
+              photo:  () => 
+              "https://res.cloudinary.com/dety84pbu/image/upload/v1606816219/kitty-veyron-sm_mctf3c.jpg",
+            };
+          },
+          thumbnail: () => 
+            "https://res.cloudinary.com/dety84pbu/image/upload/v1598465568/nebula_cat_djkt9r.jpg",
+          length: () => 1210,
+          modulesCount: () => 1,
+        }
+      ]),
   },
 };
 
