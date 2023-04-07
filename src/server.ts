@@ -5,18 +5,37 @@ import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHt
 import cors from 'cors';
 import bodyParser from 'body-parser';
 // need to import .js file after compilation
-import { typeDefs, resolvers, /*mocks*/} from "./schema.js";
-import { addMocksToSchema } from '@graphql-tools/mock';
-import { makeExecutableSchema } from '@graphql-tools/schema';
+// import { typeDefs, resolvers, /*mocks*/} from "./schema.js";
+import { typeDefs } from "./neo4j-schema.js";
 import express from 'express';
 import http from "http";
 import morgan from "morgan";
 
+
+// env variables
+import dotenv  from "dotenv"
+dotenv.config()
+
+// import neo4j services
+import neo4j from "neo4j-driver";
+import { Neo4jGraphQL } from "@neo4j/graphql";
+
+// credentials
+const USERNAME: string = process.env.NEO4J_USERNAME;
+const AURA_ENDPOINT: string = process.env.NEO4J_AURA_ENDPOINT_TEST;
+const PASSWORD: string = process.env.NEO4J_PASSWORD_TEST;
+
+const neo4jdriver = neo4j.driver(AURA_ENDPOINT, neo4j.auth.basic(USERNAME, PASSWORD));
+const neo4jschema = new Neo4jGraphQL({
+  typeDefs: typeDefs, 
+  driver: neo4jdriver
+})
+
 // Required logic for integrating with Express
 const app = express();
-// Our httpServer handles incoming requests to our Express app.
-// Below, we tell Apollo Server to "drain" this httpServer,
-// enabling our servers to shut down gracefully.
+// httpServer handles incoming requests to our Express app.
+// Below tell Apollo Server to "drain" this httpServer,
+// enabling the server to shut down gracefully.
 const httpServer = http.createServer(app);
 
 interface MyContext {
@@ -29,7 +48,7 @@ const server = new ApolloServer<MyContext>({
   // schema: addMocksToSchema({
   //   schema: makeExecutableSchema({typeDefs, resolvers}), mocks
   // }),
-  typeDefs, resolvers,
+  schema: await neo4jschema.getSchema(),
   plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
 });
 
@@ -39,8 +58,17 @@ await server.start();
 // Set up our Express middleware to handle CORS, body parsing,
 // and our expressMiddleware function.
 app.use(morgan('dev'));
+
+
+// placeholder, server also supports restful api calls
+app.get('/restapitest', (req, res) => {
+  console.log('API');
+  res.send("RECEIVED")
+})
+
+
 app.use(
-  '/',
+  '/graphql',
   cors<cors.CorsRequest>(),
   bodyParser.json(),
   // expressMiddleware accepts the same arguments:
@@ -52,5 +80,5 @@ app.use(
 
 // Modified server startup
 await new Promise<void>((resolve) => httpServer.listen({ port: 4000 }, resolve));
-console.log(`🚀 Server ready at http://localhost:4000/`);
+console.log(`TIE Server ready at http://localhost:4000/graphql`);
 
