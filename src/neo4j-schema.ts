@@ -4,13 +4,8 @@ export const typeDefs = gql`
 
   type Skill {
     id: ID @id
-    name: String!
+    name: String! @unique
     category: String
-    parentSkill: String
-    parentSkillId: ID @id
-    subSkills: [Skill!]! @relationship(type: "CONTAINS_SKILL", direction: OUT)
-    knownBy: [Person!]! @relationship(type: "HAS_SKILL", direction: IN)
-    usedBy: [Project!]! @relationship(type: "USES_SKILL", direction: IN)
   }
 
   type Person {
@@ -22,16 +17,14 @@ export const typeDefs = gql`
 
   type Project {
     id: ID @id
-    name: String!
+    name: String! @unique
     useSkills: [Skill!]! @relationship(type: "USES_SKILL", direction: OUT)
   }
 
   input SkillInput {
     name: String!
-    description: String!
-    parentSkillId: ID
-    parentSkillName: String
-    category: String!
+    description: String
+    category: String
   }
 
   input PersonInput {
