@@ -6,7 +6,7 @@ export const typeDefs = gql`
 
   type Skill {
     id: ID @id
-    name: String!
+    name: String! @unique
     category: String
   }
 
@@ -20,15 +20,13 @@ export const typeDefs = gql`
 
   type Project {
     id: ID @id
-    name: String!
+    name: String! @unique
   }
 
   input SkillInput {
     name: String!
-    description: String!
-    parentSkillId: ID
-    parentSkillName: String
-    category: String!
+    description: String
+    category: String
   }
 
   input PersonInput {
