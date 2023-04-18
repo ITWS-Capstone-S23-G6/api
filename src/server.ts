@@ -6,7 +6,7 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 // need to import .js file after compilation
 // import { typeDefs, resolvers, /*mocks*/} from "./schema.js";
-import { typeDefs } from "./neo4j-schema.js";
+import { typeDefs, resolvers } from "./neo4j-schema.js";
 import express from 'express';
 import http from "http";
 import morgan from "morgan";
@@ -22,14 +22,19 @@ import { Neo4jGraphQL } from "@neo4j/graphql";
 
 // credentials
 const USERNAME: string = process.env.NEO4J_USERNAME;
-const AURA_ENDPOINT: string = process.env.NEO4J_AURA_ENDPOINT_TEST;
-const PASSWORD: string = process.env.NEO4J_PASSWORD_TEST;
+const AURA_ENDPOINT: string = process.env.NEO4J_AURA_ENDPOINT_PROD;
+const PASSWORD: string = process.env.NEO4J_PASSWORD_PROD;
 
 const neo4jdriver = neo4j.driver(AURA_ENDPOINT, neo4j.auth.basic(USERNAME, PASSWORD));
 const neo4jschema = new Neo4jGraphQL({
   typeDefs: typeDefs, 
-  driver: neo4jdriver
+  driver: neo4jdriver,
+  resolvers: resolvers,
 })
+
+export function context() {
+  return {driver: neo4jdriver}
+}
 
 // Required logic for integrating with Express
 const app = express();
