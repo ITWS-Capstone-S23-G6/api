@@ -8,21 +8,29 @@ export const typeDefs = gql`
     id: ID @id
     name: String! @unique
     category: String
+    siblingSkills: [Skill!]! @cypher(statement: """
+        MATCH (this)-[:HAS_PARENT_SKILL]->(s:Skill)-[:CONTAINS_SKILL]->(sibling:Skill) 
+        WHERE sibling.name <> this.name 
+        RETURN sibling"""
+    )
   }
 
   type Person {
     id: ID @id
     name: String!
-    hasSkills: [String]
-    matchProjects: [MatchResult] 
+    type: String!
+    hasSkills: [Skill] @cypher(statement: "MATCH (this)-[:HAS_SKILL]->(s:Skill) RETURN s as hasSkills;")
+    matchProjects: [MatchResult]!
+    skills: [Skill!]! @relationship(type: "HAS_SKILL", direction: OUT)
   }
 
 
   type Project {
     id: ID @id
     name: String! @unique
+    useSkills: [Skill!]! @relationship(type: "USES_SKILL", direction: OUT)
   }
-
+  
   input SkillInput {
     name: String!
     description: String
@@ -40,9 +48,10 @@ export const typeDefs = gql`
   }
 
   type MatchResult {
-    person: Person
     project: Project
-    coverage_score: Float!
+    coverage_score: Float
+    missed_skills: [String]
+    similar_missed_skills: [String]
   }
 
 #   type Query {
@@ -53,23 +62,13 @@ export const typeDefs = gql`
 
 export const resolvers = {
     Person: {
-        hasSkills: (person: any) => {
-            let session = context().driver.session();
-            let params = {name: person.name};
-            return session.run(
-                `MATCH (p: Person {name: $name})-[:HAS_SKILL]->(s: Skill) 
-                return s.name as skillNames`
-            , params).then( 
-                result => {return result.records.map(record => {return record.get("skillNames")})}
-            )
-        },
 
         matchProjects: (person: any) => {
             let session = context().driver.session();
             let params = {name: person.name};
             let query = `
-            MATCH (p:Person)-[:HAS_SKILL]->(s:Skill)<-[:USES_SKILL]-(pr:Project)
-                WHERE p.name CONTAINS $name
+            MATCH (p: Person)-[:HAS_SKILL]->(s:Skill)<-[:USES_SKILL]-(pr:Project)
+                WHERE toLower(p.name) = toLower($name)
             MATCH (pr)-[:USES_SKILL]->(req_skill:Skill)
             MATCH (p)-[:HAS_SKILL]-(had_skills:Skill)
             WITH 
@@ -97,7 +96,7 @@ export const resolvers = {
                 pr AS project, 
                 p AS person, round(toFloat(size(shared_skills) + size(similar_missed_skills)*0.5) / size(required_skills), 3) as coverage_score,
                 missed_skills,
-                similar_missed_skills,
+                similar_missed_skills
             ORDER BY coverage_score DESC;
             `
             return session.run(
@@ -107,6 +106,8 @@ export const resolvers = {
                     return {
                         project: record.get('project').properties,
                         person: record.get('person').properties,
+                        missed_skills: record.get('missed_skills'),
+                        similar_missed_skills: record.get('similar_missed_skills'),
                         coverage_score: record.get('coverage_score')
                     }
                 })
