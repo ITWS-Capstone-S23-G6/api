@@ -20,7 +20,7 @@ export const typeDefs = gql`
     name: String!
     type: String!
     hasSkills: [Skill] @cypher(statement: "MATCH (this)-[:HAS_SKILL]->(s:Skill) RETURN s as hasSkills;")
-    matchProjects: [MatchResult]!
+    matchProjects: [ProjectMatchResult]!
     skills: [Skill!]! @relationship(type: "HAS_SKILL", direction: OUT)
   }
 
@@ -48,7 +48,7 @@ export const typeDefs = gql`
     name: String!
   }
 
-  type MatchResult {
+  type ProjectMatchResult {
     project: Project
     coverage_score: Float
     missed_skills: [String]
